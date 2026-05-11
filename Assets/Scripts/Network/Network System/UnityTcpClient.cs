@@ -15,6 +15,7 @@ using UnityTcp;
 /// 3. Dispatcher를 통해 패킷 핸들러로 전달
 /// 4. 메인 스레드에서 UI/이벤트 처리
 /// </summary>
+[DefaultExecutionOrder(-1)]
 public class UnityTcpClient : MonoBehaviour
 {
     [Header("Connect")]

@@ -16,6 +16,7 @@ using UnityTcp;
 /// 3. 사용자 ID 점유 상태 관리
 /// 4. 수신 패킷을 Dispatcher를 통해 Handler로 전달
 /// </summary>
+[DefaultExecutionOrder(-1)]
 public class UnityTcpServer : MonoBehaviour
 {
     public int port = 7777;

@@ -67,6 +67,10 @@ public class UnityTcpServer : MonoBehaviour
     {
         StopServer();
     }
+    void OnApplicationQuit()   // 추가
+    {
+        StopServer();
+    }
 
     void Update()
     {
@@ -106,13 +110,23 @@ public class UnityTcpServer : MonoBehaviour
 
         try { _listener?.Stop(); } catch { }
 
+        // 잠금 안에서 Close하면 RecvLoop의 finally가 같은 락을 잡으려고 대기함.
+        // 락 밖에서 Close해서 데드락 위험을 없앤다.
+        List<ClientConn> snapshot;
         lock (_lock)
         {
-            foreach (var c in _clients.Values) c.Close();
+            snapshot = new List<ClientConn>(_clients.Values);
             _clients.Clear();
-
             for (int i = 0; i < _taken.Length; i++) _taken[i] = false;
         }
+        foreach (var c in snapshot) c.Close();
+
+        if (_acceptThread != null && _acceptThread.IsAlive)
+        {
+            if (!_acceptThread.Join(500))
+                Debug.LogWarning("[Server] Accept thread did not stop within timeout.");
+        }
+        _acceptThread = null;
 
         Debug.Log("[Server] Stopped");
     }
@@ -531,6 +545,11 @@ public class UnityTcpServer : MonoBehaviour
             _alive = false;
             try { _stream?.Close(); } catch { }
             try { _tcp?.Close(); } catch { }
+
+            if (_recvThread != null && _recvThread.IsAlive && Thread.CurrentThread != _recvThread)
+            {
+                _recvThread.Join(300);
+            }
         }
 
         /// <summary>

@@ -90,6 +90,11 @@ public class UnityTcpClient : MonoBehaviour
         StopClient();
     }
 
+    void OnApplicationQuit()   // 추가
+    {
+        StopClient();
+    }
+
     void Update()
     {
         // 네트워크 스레드에서 예약한 메인 스레드 작업 실행
@@ -182,6 +187,13 @@ public class UnityTcpClient : MonoBehaviour
     {
         _running = false;
         DisconnectInternal(clearDesiredUserId: true);
+
+        if (_netThread != null && _netThread.IsAlive)
+        {
+            if (!_netThread.Join(500))
+                Debug.LogWarning("[Client] Net thread did not stop within timeout.");
+        }
+        _netThread = null;
     }
 
     /// <summary>

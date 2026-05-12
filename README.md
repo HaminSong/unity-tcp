@@ -1,6 +1,6 @@
-# Unity TCP Network Framework
+# Unity TCP Network Module
 
-Unity에서 TCP/UDP 기반 멀티플레이어 네트워크를 구현한 프레임워크입니다.  
+Unity에서 TCP 기반 멀티플레이어 네트워크를 구현한 네트워크 모듈입니다.  
 Mirror, Netcode for GameObjects 같은 고수준 솔루션 없이 소켓 레벨부터 직접 구현하였으며,  
 게임 로직 스크립트가 네트워크 코드를 몰라도 되도록 API 형태로 설계하였습니다.
 
@@ -68,6 +68,33 @@ byte[] packet = PacketBuilder.Build(Msg.Chat, Sub.ChatEventReq, body);
 
 // 패킷 파싱
 var data = MarshalUtil.BytesToStruct<ChatEventReq>(packet, NetConst.HeaderSize);
+```
+<br>
+
+### [마샬링](https://learn.microsoft.com/ko-kr/dotnet/standard/native-interop/type-marshalling)
+
+
+패킷 Body는 C# 구조체를 바이트 배열로 변환하거나, 수신한 바이트 배열을 구조체로 복원하는 방식으로 직렬화합니다.  
+별도의 직렬화 라이브러리 없이 `Marshal` 클래스를 사용하여 구조체의 메모리 레이아웃을 그대로 바이트로 복사합니다.
+
+```csharp
+// 구조체 → 바이트 배열 (송신)
+byte[] body = MarshalUtil.StructToBytes(new ChatEventReq { Message = "hello" });
+byte[] packet = PacketBuilder.Build(Msg.Chat, Sub.ChatEventReq, body);
+
+// 바이트 배열 → 구조체 (수신)
+var data = MarshalUtil.BytesToStruct<ChatEventReq>(packet, NetConst.HeaderSize);
+```
+
+이 방식이 성립하려면 서버와 클라이언트가 동일한 바이트 레이아웃을 가져야 합니다.  
+`[StructLayout(LayoutKind.Sequential, Pack = 1)]`을 적용하여 컴파일러의 임의 패딩을 막고, 필드 선언 순서대로 바이트가 배치되도록 강제합니다.
+
+```csharp
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct ChatEventReq
+{
+    public fixed byte Message[256];
+}
 ```
 
 <br>
